@@ -14,7 +14,7 @@ define DEFAULT_VAR =
 endef
 
 # Compiler for building the 'limine' executable for the host.
-override DEFAULT_HOST_CC := cc
+override DEFAULT_HOST_CC := gcc
 $(eval $(call DEFAULT_VAR,HOST_CC,$(DEFAULT_HOST_CC)))
 
 .PHONY: all
@@ -25,7 +25,7 @@ all-hdd: $(IMAGE_NAME).hdd
 
 .PHONY: run
 run: $(IMAGE_NAME).iso
-	qemu-system-x86_64 -M q35 -m 2G -cdrom $(IMAGE_NAME).iso -boot d
+	qemu-system-x86_64 -M q35 -m 2G -cdrom $(IMAGE_NAME).iso -boot d -serial file:serial.log -D ./log.txt -d int -M smm=off
 
 .PHONY: run-uefi
 run-uefi: ovmf $(IMAGE_NAME).iso
@@ -38,6 +38,10 @@ run-hdd: $(IMAGE_NAME).hdd
 .PHONY: run-hdd-uefi
 run-hdd-uefi: ovmf $(IMAGE_NAME).hdd
 	qemu-system-x86_64 -M q35 -m 2G -bios ovmf/OVMF.fd -hda $(IMAGE_NAME).hdd
+
+.PHONY: run-gdb
+run-gdb: $(IMAGE_NAME).iso
+	qemu-system-x86_64 -M q35 -m 2G -cdrom $(IMAGE_NAME).iso -boot d -serial file:serial.log -D ./log.txt -d int -M smm=off -s -S
 
 ovmf:
 	mkdir -p ovmf
@@ -54,6 +58,7 @@ kernel:
 $(IMAGE_NAME).iso: limine kernel
 	rm -rf iso_root
 	mkdir -p iso_root
+	cp -v kernel/external/* iso_root/
 	cp -v kernel/kernel.elf \
 		limine.cfg limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin iso_root/
 	mkdir -p iso_root/EFI/BOOT

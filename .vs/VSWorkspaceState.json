@@ -1,8 +1,10 @@
 {
   "ExpandedNodes": [
     "",
-    "\\kernel"
+    "\\kernel",
+    "\\kernel\\Rendering",
+    "\\kernel\\Utils"
   ],
-  "SelectedNode": "\\kernel\\linker.ld",
+  "SelectedNode": "\\kernel\\GNUmakefile",
   "PreviewInSolutionExplorer": false
 }

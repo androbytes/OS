@@ -15,18 +15,21 @@ define DEFAULT_VAR =
     endif
 endef
 
-# It is highly recommended to use a custom built cross toolchain to build a kernel.
-# We are only using "cc" as a placeholder here. It may work by using
+# It is suggested to use a custom built cross toolchain to build a kernel.
+# We are using the standard "cc" here, it may work by using
 # the host system's toolchain, but this is not guaranteed.
-override DEFAULT_CC := cc
+override DEFAULT_CC := gcc
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
+
+override DEFAULT_GPP := g++
+$(eval $(call DEFAULT_VAR,GPP,$(DEFAULT_GPP)))
 
 # Same thing for "ld" (the linker).
 override DEFAULT_LD := ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
 # User controllable C flags.
-override DEFAULT_CFLAGS := -g -O2 -pipe
+override DEFAULT_CFLAGS := -g3 -pipe # -O2
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
 
 # User controllable C preprocessor flags. We set none by default.
@@ -53,7 +56,6 @@ override CFLAGS += \
     -fPIE \
     -m64 \
     -march=x86-64 \
-    -mabi=sysv \
     -mno-80387 \
     -mno-mmx \
     -mno-sse \
@@ -86,10 +88,11 @@ override NASMFLAGS += \
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
 # object and header dependency file names.
 override CFILES := $(shell find -L . -type f -name '*.c')
+override CPPFILES := $(shell find -L . -type f -name '*.cpp')
 override ASFILES := $(shell find -L . -type f -name '*.S')
 override NASMFILES := $(shell find -L . -type f -name '*.asm')
-override OBJ := $(CFILES:.c=.c.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o)
-override HEADER_DEPS := $(CFILES:.c=.c.d) $(ASFILES:.S=.S.d)
+override OBJ := $(CFILES:.c=.c.o) $(CPPFILES:.cpp=.cpp.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o)
+override HEADER_DEPS := $(CFILES:.c=.c.d) $(CPPFILES:.cpp=.cpp.d) $(ASFILES:.S=.S.d)
 
 # Default target.
 .PHONY: all
@@ -99,22 +102,26 @@ limine.h:
 	curl -Lo $@ https://github.com/limine-bootloader/limine/raw/trunk/limine.h
 
 # Link rules for the final kernel executable.
-$(KERNEL): $(OBJ)
+$(KERNEL): GNUmakefile linker.ld $(OBJ)
 	$(LD) $(OBJ) $(LDFLAGS) -o $@
 
 # Include header dependencies.
 -include $(HEADER_DEPS)
 
 # Compilation rules for *.c files.
-%.c.o: %.c limine.h
+%.c.o: %.c GNUmakefile limine.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
+# Compilation rules for *.cpp files.
+%.cpp.o: %.cpp GNUmakefile limine.h
+	$(GPP) $(CFLAGS) $(CPPFLAGS) -std=c++11 -c $< -o $@
+
 # Compilation rules for *.S files.
-%.S.o: %.S limine.h
+%.S.o: %.S GNUmakefile limine.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # Compilation rules for *.asm (nasm) files.
-%.asm.o: %.asm
+%.asm.o: %.asm GNUmakefile
 	nasm $(NASMFLAGS) $< -o $@
 
 # Remove object files and the final executable.

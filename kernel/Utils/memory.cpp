@@ -21,6 +21,16 @@ void* memset(void* s, int c, size_t n) {
     return s;
 }
 
+volatile void* memset(volatile void* s, int c, size_t n) {
+    uint8_t* p = (uint8_t*)s;
+
+    for (size_t i = 0; i < n; i++) {
+        p[i] = (uint8_t)c;
+    }
+
+    return s;
+}
+
 void* memmove(void* dest, const void* src, size_t n) {
     uint8_t* pdest = (uint8_t*)dest;
     const uint8_t* psrc = (const uint8_t*)src;
@@ -50,4 +60,14 @@ int memcmp(const void* s1, const void* s2, size_t n) {
     }
 
     return 0;
+}
+
+size_t GetMemorySize(limine_memmap_response* response){
+	static size_t size = 0;
+	if(size > 0) return size;
+	
+	for(int i = 0; i < response->entry_count; i++){
+		size += response->entries[i]->length;
+	}
+	return size;
 }
